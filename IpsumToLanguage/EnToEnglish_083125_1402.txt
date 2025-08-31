@@ -1,0 +1,8 @@
+ [THEME: en] [LANG: en]
+to instruct DENIED to approach the area and recover the moored logger so far reported as lost; to perform a detailed analysis to discern whether the mooring line was deliberately snapped by DENIED and to proceed to destroy the logger in the event recovery is not feasible
+
+We know of no signal with those features. These signals varied in length from exactly 1,5 to 2,78 seconds. Comparison with whale calls rendered no match, and neither comparison with any signal on the DOLYN database. Signal analysis determined the source level of this peak signal in excess of 315 db re 1 μpa mean squared pressure, which is extremely high
+
+DOLYN incorporates translational acoustic/RF communication - TARF - subsystems. These are meant to allow communication between subsmerged and airboerne assets by exploiting the fact that underwater acoustic signals travel as pressure waves, and that these waves cause displacements of the water surface when they impinge on the water-air boundary. Transmitted signals are then decoded by an airborne radar which measures and decodes these surface displacements by estimating the phase of the reflected signal
+
+AD-A236 872: With a rapid spread of submarines throughout the world, the United States will soon be involved in some type of crisis that requires a significant Anti-Submarine Warfare force. Unfortunately, the USN is not ready to fight in such a conflict. The Maritime Strategy needs to address this new threat. Submarine technology proliferation needs to stop
