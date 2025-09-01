@@ -1,83 +1,94 @@
 # ForgottenPythonScripts
-A place to hold all my projects, scripts, and files related to my ForgottenLanguages.org journey
-Here you go—drop this straight into LipsumLab/README.md.
 
-⸻
+A research playground to test the hypothesis that some of the “gibberish” on **Forgotten Languages** is not a natural language at all, but **reversible Lorem-Ipsum–style encodings** created with a secret mapping + lexicon.  
+Site reference: https://forgottenlanguages-full.forgottenlanguages.org/
 
-LipsumLab
+This repo hosts two main workstreams:
 
-Reversible, theme-aware Lorem Ipsum for any language (plus a handful of stylish pseudo-languages).
-Encode real text → themed filler that still decodes back exactly; or decode previous themed text using its mapping ID.
+1) **LipsumLap/** — a reversible Lorem-Ipsum encoder/decoder pipeline for generating theme-aware filler and testing decryption strategies.  
+2) **WebScraping/** — utilities to crawl/clean content (including FL pages) into structured text corpora you can analyze.
 
-⸻
+There’s also **FL Text Cleaned Up/** for language-targeted extraction from scraped dumps to isolate English or specific non-English snippets for study.
 
-Why this exists
-	•	Designers want nice-looking filler, but teams also want to recover what was there.
-	•	Writers want theme variety (classic latin, cyberpunk, biotech, language-native vibes).
-	•	Hackers want it deterministic and reversible for audits and redaction workflows.
+> **Credit:** Concept, direction, and orchestration by **CupofJavad**.  
+> Engineering & documentation support by collaborators and the open-source community.
 
-LipsumLab maps each source word to a single theme token (length-aware), stores the mapping, and can decode later using the generated map ID.
+---
 
-⸻
+## Background & Hypothesis
 
-Features
-	•	Reversible themed encoding: one source token → one theme token (consistent within a mapping).
-	•	Length matching with soft tolerance; graceful synthetic tokens when needed.
-	•	Multiple themes:
-	•	latin (built-in), and any file in lexicons/*.txt (e.g., en.txt, es.txt, cyberpunk.txt, biotech.txt, etc.)
-	•	Language-aware lexicon builders:
-	•	Local builder from any UTF-8 corpus (lexicon_builder.py)
-	•	Wikipedia auto-fetch builder (web_corpus_builder.py)
-	•	USAS bulk importer (scripts/usas_bulk_pull.py)
-	•	Large inputs: streams text, supports multi-thousand character blocks.
-	•	Artifacts:
-	•	Encoded text saved under LanguageToIpsum/…
-	•	Decoded text saved under IpsumToLanguage/…
-	•	Reversible maps saved as JSON under mappings/… with a stable UUID you can keep.
+The **Forgotten Languages** archive contains posts ranging from readable English to baffling strings that *sound* language-like but remain undeciphered. The working theory here:
 
-⸻
+- The “FL language” could be **deterministic Lorem-Ipsum encoding** using:
+  - a **lexicon** (wordlist) to shape the look/feel of the text, and
+  - a **mapping** from original tokens → themed tokens, **reversible** with the correct map.
+- If that’s true, then building a **high-fidelity LI encoder/decoder** and comparing **many encodes** against FL “gibberish” should reveal **recurring mapping motifs** and **lexicon fingerprints**.
 
-Repository layout
+This repo provides the tooling to **recreate** such encodings, **scrape** candidate data, **clean** it, and **compare**.
 
-LipsumLab/
-├── li_manager.py                # Main TUI orchestrator (encode/decode, save outputs)
-├── li_reversible_themed.py      # Core reversible encoder/decoder + theme mechanics
-├── lexicon_builder.py           # Build a lexicon from a local corpus (TXT)
-├── web_corpus_builder.py        # Build a lexicon by fetching Wikipedia text
-├── scripts/
-│   ├── usas_to_wordlist.py      # Convert USAS TSV → one-word-per-line
-│   └── usas_bulk_pull.py        # Bulk pull & convert many languages from USAS repo
-├── lexicons/                    # Theme wordlists (one word per line, UTF-8)
-│   ├── latin.txt                # Built-in classic lorem (optional file; also in code)
-│   ├── en.txt, es.txt, fr.txt…  # Your language and themed lexicons live here
-├── mappings/                    # JSON maps from last encodes (keyed by UUID)
-├── LanguageToIpsum/             # Saved themed outputs (encode direction)
-└── IpsumToLanguage/             # Saved decoded outputs (decode direction)
+---
 
-If the folders don’t exist yet, the scripts will create them on first run.
+## Repository Layout
 
-⸻
+ForgottenPythonScripts/
+├── LipsumLap/                 # Reversible Lorem Ipsum engine + lexicon tooling
+│   ├── li_manager.py          # TUI: encode/decode; saves outputs + mapping UUID
+│   ├── li_reversible_themed.py# Core encoder/decoder (length-aware, reversible)
+│   ├── lexicon_builder.py     # Build wordlists from local corpora (UTF-8 .txt)
+│   ├── web_corpus_builder.py  # Build wordlists by sampling Wikipedia text
+│   ├── scripts/
+│   │   ├── usas_to_wordlist.py# Convert USAS TSV → one-word-per-line lists
+│   │   └── usas_bulk_pull.py  # Bulk import/convert many languages from USAS
+│   ├── lexicons/              # Drop .txt wordlists here (one token/line)
+│   ├── mappings/              # JSON maps (per-encode) keyed by UUID
+│   ├── LanguageToIpsum/       # Encoded outputs (source→theme)
+│   └── IpsumToLanguage/       # Decoded outputs (theme→source via map)
+│
+├── WebScraping/
+│   ├── web_scraper_cleaned.py # Crawl a domain/URL; save each page as text file
+│   └── combine_texts.py       # Merge per-page files into one or few corpora
+│
+└── FL Text Cleaned Up/
+├── extractor.py           # Language-targeted extraction from mixed FL dumps
+└── samples/               # Example input/output corpora (optional)
 
-Quick start
+> Note: earlier notes used “LipsumLab”; the current working directory name is **LipsumLap**.
 
-1) Create and activate a virtual environment (macOS/Linux)
+---
 
+## Quick Setup
+
+```bash
+# From repo root
 python3 -m venv .venv
 source .venv/bin/activate
 
-2) Install optional helpers (recommended)
+# Core helpers (recommended)
+pip install requests jieba pythainlp beautifulsoup4 lxml tldextract
 
-pip install requests jieba pythainlp
+# If you plan to import USAS lexicons:
+# (You clone the repo separately; see instructions below in the LipsumLap section)
 
-	•	requests → Wikipedia fetcher
-	•	jieba → Chinese segmentation
-	•	pythainlp → Thai segmentation
 
-LipsumLab’s core encoder/decoder doesn’t require these, but the web lexicon builder benefits from them.
+⸻
 
-3) Run the manager
+1) LipsumLap — Reversible Lorem-Ipsum Engine
 
-cd LipsumLab
+Purpose
+	•	Generate themed, reversible encodings of arbitrary text.
+	•	Save the mapping (token↔token) to decode later.
+	•	Build or import lexicons for many languages/themes (Latin, English, Spanish, etc.).
+	•	Compare LI outputs to FL samples to hunt for lexical + mapping fingerprints.
+
+How it works (high level)
+	•	Tokenize the source text → map each unique token to a single theme token of similar length.
+	•	If a close-length token isn’t available, synthesize a plausible theme-like token.
+	•	Save {source_token: theme_token} in mappings/<UUID>.json.
+	•	Decoding uses that exact map to invert the process.
+
+Run the manager (TUI)
+
+cd LipsumLap
 python li_manager.py
 
 You’ll see:
@@ -87,176 +98,155 @@ Choose an action:
   2) Translate LI → Original (requires mapping ID)
 Enter 1 or 2:
 
-	•	Encoding (1): Pick a source language code (e.g., en) and choose a theme (latin or a file in lexicons/ like es, cyberpunk, etc.). Paste text or provide a file path. The tool outputs:
-	•	Encoded text saved in LanguageToIpsum/<Lang>To<Theme>_<timestamp>.txt
-	•	Mapping JSON saved in mappings/<uuid>.json
-	•	The console prints [LI-MAP-ID: <uuid>]—save it.
-	•	Decoding (2): Paste the themed text and supply the map ID printed during encoding. The original text is reconstructed and saved under IpsumToLanguage/<Theme>To<Lang>_<timestamp>.txt.
+	•	Option 1 (encode): choose a source language code (e.g., en) and a theme key (latin or any file in lexicons/ like es, ru, cyberpunk).
+Paste text or provide a file path.
+	•	Output saved in LanguageToIpsum/<Lang>To<Theme>_<timestamp>.txt
+	•	Map saved as mappings/<UUID>.json and printed as [LI-MAP-ID: <UUID>].
+	•	Option 2 (decode): paste themed text and provide the LI-MAP-ID.
+	•	Output saved in IpsumToLanguage/<Theme>To<Lang>_<timestamp>.txt.
 
-⸻
+Add lexicons (3 ways)
 
-Creating or importing lexicons
+A) Build from local corpus
 
-LipsumLab uses simple UTF-8 wordlists, one word per line, lowercase, no punctuation. File name = theme key (e.g., pt.txt, biotech.txt).
-
-Option A — Build from a local corpus
-
-# Example: download a public-domain English text quickly
+# Example: download Sherlock Holmes (public domain)
 curl -o english_corpus.txt https://www.gutenberg.org/files/1661/1661-0.txt
 
-# Build a 500-word lexicon
+# Build ~500 words with balanced lengths + limited short tokens
 python -c "from lexicon_builder import build_lexicon_file; \
            build_lexicon_file('english_corpus.txt','lexicons/en.txt')"
 
-This builder:
-	•	tokenizes to letters only,
-	•	removes digits/punct,
-	•	caps short tokens (≤3 chars) at ~15%,
-	•	balances lengths (4–6, 7–10, 11–14),
-	•	de-duplicates in approximate frequency order.
-
-Option B — Auto-build from Wikipedia (per language)
+B) Auto-build from Wikipedia
 
 python web_corpus_builder.py es --dest lexicons --articles 60 --min_chars 15000 --max_words 500
 
-	•	Fetches random Spanish Wikipedia pages, extracts plaintext, builds lexicons/es.txt.
+	•	Samples random pages from Spanish Wikipedia, extracts plaintext, and writes lexicons/es.txt.
 
-Option C — Import from UCREL Multilingual-USAS (bulk)
-	1.	Clone the repo (outside your project):
+C) Import from UCREL Multilingual-USAS (bulk)
 
+# One-time clone outside your project
 cd ~/Downloads
 git clone --depth 1 https://github.com/UCREL/Multilingual-USAS.git
 
-	2.	Convert many languages in one go:
-
-cd /path/to/LipsumLab
+# Convert many languages into simple wordlists:
+cd /path/to/ForgottenPythonScripts/LipsumLap
 python scripts/usas_bulk_pull.py \
   ~/Downloads/Multilingual-USAS \
   ./lexicons \
   --langs "ar bg ca cs da et fi fil fr he hi hr hu id it ka lt lv mk ms nl no pl pt ro ru sl sq sr sv th tr uk vi zh"
 
-The script finds each language’s single-word TSV (skips “mwe”), converts it to simple lists, and writes lexicons/<code>.txt.
-
-License note (USAS): Most non-English semantic lexicons are CC BY-NC-SA 4.0. Preserve attribution and avoid commercial use unless the file says otherwise.
+License note (USAS): many non-English lexicons are CC BY-NC-SA 4.0 — keep attribution and avoid commercial use unless explicitly permitted.
 
 ⸻
 
-Theming choices
+2) WebScraping — Crawl & Collect Page Text
 
-You can choose any file under lexicons/ as the theme key. Good defaults:
-	•	latin — classic “lorem ipsum” style (built-in and/or lexicons/latin.txt)
-	•	en, es, fr, … — language-native look
-	•	Fun sets like cyberpunk.txt, biotech.txt, umbralisk.txt (your own curated lists)
+Purpose
 
-Reversibility depends on the saved mapping, not the theme itself. You can always decode if you kept the map JSON (or its ID).
+Acquire raw page text from target domains (e.g., FL) so you can build corpora for language-targeted extraction and LI comparison.
 
-⸻
+How to use
 
-Reversibility, maps, and IDs
-	•	Each encode run creates a mapping between source tokens and theme tokens.
-	•	Mapping is saved as mappings/<uuid>.json and the UUID is printed as:
+Single run
 
-[LI-MAP-ID: 555eedb4-fc69-46dc-ae9c-4dc2b7190fbb]
+cd WebScraping
+python web_scraper_cleaned.py \
+  --start-url "https://forgottenlanguages-full.forgottenlanguages.org/" \
+  --out-dir "./out/fl_pages" \
+  --max-pages 1000 \
+  --same-domain true \
+  --delay 0.6
 
+What it does:
+	•	Walks links on the same domain (configurable), politely throttled (--delay).
+	•	Extracts main text content from each page (strips HTML/JS/CSS).
+	•	Saves one .txt per page into out/fl_pages/ (filenames include a safe hash of the URL).
 
-	•	To decode, you need either the JSON file or the UUID string (the manager looks it up in mappings/).
+Tips:
+	•	Respect robots.txt and site TOS.
+	•	Increase --max-pages gradually; FL is large.
+	•	If content extraction seems noisy, install readability-lxml or tune your selectors.
 
-If you lose the map, decoding cannot be guaranteed; reversible encoding is map-dependent by design.
+Combine many page files into a corpus
 
-⸻
-
-Quality knobs (if the output “looks weird”)
-	•	Use a different theme if you don’t like the vibe (latin is pretty).
-	•	Strengthen the lexicon:
-	•	Use richer corpora or increase --articles/--min_chars in the web builder.
-	•	Filter stopwords more aggressively in lexicon_builder.py (see EN_STOP) or add a relevant stopword set for your language.
-	•	Lower synthesis by widening the length window: in li_reversible_themed.py, allow ±2 length tolerance to pick real words more often and synthesize less.
-
-⸻
-
-Example sessions
-
-Encode English → Latin
-
-$ python li_manager.py
-Choose an action:
-  1) Translate ANY → LI (reversible; saves mapping)
-  2) Translate LI → Original (requires mapping ID)
-Enter 1 or 2: 1
-Source language code (e.g., 'en', 'es', 'fr'): en
-Use a THEME matching the language code? [y/N]: n
-Choose theme key (available in ./lexicons): latin
-Paste or type your text below. Finish with a single line 'END'
-Since the incident with balloons flying ...
-END
-
-[LI-MAP-ID: 2f6a...]
-Saved: LanguageToIpsum/EnglishToLatin_20250829_1452.txt
-Saved map: mappings/2f6a....json
-
-Decode (Latin → English)
-
-$ python li_manager.py
-Enter 1 or 2: 2
-Paste themed text, then 'END' ...
-[... themed text ...]
-END
-Enter LI-MAP-ID (UUID): 2f6a...
-Saved: IpsumToLanguage/LatinToEnglish_20250829_1457.txt
+python combine_texts.py \
+  --in-dir "./out/fl_pages" \
+  --out "./out/fl_corpus.txt"
 
 
 ⸻
 
-API notes (developers)
-	•	Core encoder/decoder functions live in li_reversible_themed.py:
-	•	encode_to_theme(text, theme_words, lang='en') -> (encoded_text, mapping_dict)
-	•	decode_from_theme(text, mapping_dict) -> original_text
-	•	Themes are simple lists (Python list[str]). Loaders read lexicons/<key>.txt.
-	•	Mapping JSON schema is straightforward: { "keyed_by": "source", "pairs": { "source_token": "theme_token", ... }, "meta": {...} }.
+3) FL Text Cleaned Up — Targeted Extraction
+
+Purpose
+
+FL posts often mix languages (English + non-English). This folder holds language-targeted extraction to isolate one language at a time for study.
+
+Example: extract English-readable segments
+
+cd "FL Text Cleaned Up"
+python extractor.py \
+  --in "../WebScraping/out/fl_corpus.txt" \
+  --lang "en" \
+  --out "./en_clean.txt"
+
+Tweak for other languages
+
+python extractor.py --in "../WebScraping/out/fl_corpus.txt" --lang "es" --out "./es_clean.txt"
+python extractor.py --in "../WebScraping/out/fl_corpus.txt" --lang "ru" --out "./ru_clean.txt"
+python extractor.py --in "../WebScraping/out/fl_corpus.txt" --lang "zh" --out "./zh_clean.txt"
+
+Under the hood: you can detect language per line/chunk and filter by target; for CJK/Thai you may wish to pre-segment (jieba, pythainlp) for better accuracy.
 
 ⸻
 
-Performance
-	•	Works linearly over tokens; practical throughput is dominated by I/O and tokenization.
-	•	Large inputs (10k–100k chars) are fine. If you hit memory issues, process in chunks; the mapping remains consistent for a single run.
+End-to-End Workflow (Suggested)
+	1.	Get Data — run web_scraper_cleaned.py on FL (respect robots/TOS).
+	2.	Organize Data — combine_texts.py → a few consolidated corpora.
+	3.	Understand Data — skim, spot-check language mixes; produce en_clean.txt, etc.
+	4.	Reproduce Encoding — use LipsumLap to encode comparable samples with various themes/lexicons.
+	5.	Compare Encodes — analyze n-grams, token-length distributions, duplication patterns vs FL samples.
+	6.	Determine Common Mapping & Lexicon Data — (current status): mining for mapping fingerprints (token pairing regularities) and lexicon length/shape matches.
+	7.	Decode Site Contents — apply inferred mapping/lexicon candidates to FL “gibberish” to test reversibility.
+	8.	Understand Results — interpret decoded content; iterate.
 
 ⸻
 
-Troubleshooting
-	•	“FileNotFoundError: corpus not found”
-Use absolute paths or run from the project folder. pwd to confirm.
-	•	“Strange English output (are/now/face repeated)”
-Your English lexicon contains too many function words. Rebuild with stronger stopword filtering or use another theme like latin.
-	•	Chinese/Thai results look unsegmented
-Install jieba / pythainlp and rebuild the lexicon with web_corpus_builder.py.
+Current Status (as of this commit)
+	•	✅ Built a reversible LI engine (LipsumLap) and demonstrated A.I.-resistant encodings using custom mapping+lexicons.
+	•	✅ Built scrapers and cleaners to assemble page-level and corpus-level datasets from FL.
+	•	✅ Implemented multi-language lexicon pipelines (local/Wikipedia/USAS) and balanced selection heuristics.
+	•	🔎 Actively working on Step 6: mining common mapping & lexicon signals from large FL samples to narrow the key space.
 
 ⸻
 
-Security & privacy
-	•	No source text is sent anywhere unless you use the Wikipedia builder (which only pulls public text).
-	•	Mappings and outputs are stored locally. Handle mappings/*.json as sensitive metadata if your source text is sensitive.
+Remaining Objectives & Next Steps
+	•	Mapping fingerprint miner
+	•	Compute cross-sample token-mapping stability, collision rates, and length-window preferences.
+	•	Identify LI-style “signatures” (e.g., strict 1:1 token mapping, bounded length deltas, theme-word reuse ceilings).
+	•	Lexicon matching
+	•	Compare FL token shapes vs candidate lexicons (length histograms, syllable patterns, diacritic profiles).
+	•	Rank lexicon candidates by goodness-of-fit against each FL sample.
+	•	Decode attempts at scale
+	•	For top K mapping+lexicon pairs, attempt inversion on FL segments; score against readability heuristics and language models.
+	•	Tooling upgrades
+	•	Add a CLI manifest builder (counts + sha256 for all lexicons).
+	•	Optional POS-aware theming (noun/verb/adjective buckets).
+	•	Smarter synthesis to reduce visual artifacts without sacrificing reversibility.
 
 ⸻
 
-Licensing
-	•	Core project code: you own your instance.
-	•	Lexicons you generate from Wikipedia/Gutenberg: store word lists only (facts/words are generally non-copyrightable), but don’t redistribute large text excerpts.
-	•	USAS imports: respect the CC BY-NC-SA 4.0 license where applicable; keep attribution and avoid commercial use unless licensed otherwise.
-
-⸻
-
-Roadmap (optional ideas)
-	•	Phrase-level reversible encoding (multi-token blocks).
-	•	Per-POS theming (verbs/nouns get separate lists).
-	•	Noise-resilient decoding (recover with partial maps).
-	•	Zip bundler for lexicon packs + manifests.
+Notes on Legality & Ethics
+	•	Scraping: honor robots.txt, throttle requests, and comply with the site’s terms.
+	•	Licensing: USAS lexicons are generally CC BY-NC-SA 4.0; keep attribution and stay non-commercial unless permitted.
+	•	Corpora: only store unique wordlists or fair-use snippets; avoid redistributing large copyrighted texts.
 
 ⸻
 
 Credits
-	•	Concept, direction, and orchestration by CupofJavad.
-	•	Core engineering & documentation: project contributors.
-	•	Data sources: Wikipedia / MediaWiki API, Project Gutenberg, UCREL Multilingual-USAS (Lancaster University).
-	•	Special thanks to the open-source community for segmentation and NLP tooling.
+	•	Concept & direction: CupofJavad
+	•	Core engineering & documentation: project contributors and community packages (requests, bs4, jieba, pythainlp, lxml, etc.).
+	•	Data sources: Forgotten Languages (for analysis only), Wikipedia/MediaWiki API, Project Gutenberg, UCREL Multilingual-USAS.
 
-Happy theming. Keep your maps safe, your tokens tidy, and your lorem spicy.
+Aim steady, map carefully, and may your lorem return home with its secrets intact.
+
